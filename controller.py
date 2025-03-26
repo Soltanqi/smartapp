@@ -1,28 +1,43 @@
+import os
+
+
 def aantal_dagen(inputFile):
+    if not os.path.exists(inputFile):
+        print("Fout: Bestand niet gevonden.")
+        return -1
     with open(inputFile, 'r') as file:
         regels = file.readlines()
     return len(regels) - 1
 
 
 def auto_bereken(inputFile, outputFile):
+    if not os.path.exists(inputFile):
+        print("Fout: Bestand niet gevonden.")
+        return
     with open(inputFile, 'r') as infile, open(outputFile, 'w') as outfile:
-        lines = infile.readlines()[1:]  #
+        lines = infile.readlines()[1:]
         for line in lines:
-            date, numPeople, tempSetpoint, tempOutside, precip = line.split()
-            numPeople, tempSetpoint, tempOutside, precip = int(numPeople), float(tempSetpoint), float(
-                tempOutside), float(precip)
+            try:
+                date, numPeople, tempSetpoint, tempOutside, precip = line.strip().split()
+                numPeople, tempSetpoint, tempOutside, precip = int(numPeople), float(tempSetpoint), float(tempOutside), float(precip)
 
-            cv_ketel = 100 if (tempSetpoint - tempOutside) >= 20 else 50 if (tempSetpoint - tempOutside) >= 10 else 0
-            ventilatie = min(numPeople + 1, 4)
-            bewatering = precip < 3
+                cv_ketel = 100 if (tempSetpoint - tempOutside) >= 20 else 50 if (tempSetpoint - tempOutside) >= 10 else 0
+                ventilatie = min(numPeople + 1, 4)
+                bewatering = "True" if precip < 3 else "False"
 
-            outfile.write(f"{date};{cv_ketel};{ventilatie};{bewatering}\n")
+                outfile.write(f"{date};{cv_ketel};{ventilatie};{bewatering}\n")
+            except ValueError:
+                print(f"Fout bij verwerken van regel: {line.strip()}")
 
 
-def overwrite_settings(inputFile, outputFile):
-    date = input("Voer de datum in (bijv. 08-10-2024): ")
-    system = input("Kies een van de geldige systemen (1: CV ketel, 2: ventilatie, 3: bewatering): ")
-    value = input("Voer de nieuwe waarde in (bijv. 70, zodat de CV ketel op 70% wordt gezet) : ")
+def overwrite_settings(outputFile):
+    if not os.path.exists(outputFile):
+        print("Fout: Bestand niet gevonden.")
+        return -1
+
+    date = input("Voer de datum in (bijv. 08-10-2024): ").strip()
+    system = input("Kies een van de systemen (1: CV ketel, 2: ventilatie, 3: bewatering): ").strip()
+    value = input("Voer de nieuwe waarde in: ").strip()
 
     if system not in ['1', '2', '3']:
         print("Fout: Ongeldig systeem gekozen.")
@@ -38,7 +53,7 @@ def overwrite_settings(inputFile, outputFile):
     updated = False
     new_lines = []
     for line in lines:
-        parts = line.split(';')
+        parts = line.strip().split(';')
         if parts[0] == date:
             if system == '1' and value.isdigit() and 0 <= int(value) <= 100:
                 parts[1] = value
@@ -47,16 +62,19 @@ def overwrite_settings(inputFile, outputFile):
             elif system == '3' and value in ('0', '1'):
                 parts[3] = "True" if value == '1' else "False"
             else:
+                print("Fout: Ongeldige invoer voor het geselecteerde systeem.")
                 return -3
             updated = True
         new_lines.append(";".join(parts) + "\n")
 
     if not updated:
+        print("Fout: Datum niet gevonden.")
         return -1
 
     with open(outputFile, 'w') as file:
         file.writelines(new_lines)
 
+    print("Waarde succesvol bijgewerkt.")
     return 0
 
 
@@ -68,9 +86,11 @@ def smart_home_controller():
         print("3. Waarde overschrijven")
         print("4. Stoppen")
 
-        keuze = input("Maak een keuze (1-4): ")
+        keuze = input("Maak een keuze (1-4): ").strip()
         if keuze == '1':
-            print(f"Aantal dagen: {aantal_dagen('smart_home_input.txt')}")
+            dagen = aantal_dagen('smart_home_input.txt')
+            if dagen != -1:
+                print(f"Aantal dagen: {dagen}")
         elif keuze == '2':
             auto_bereken('smart_home_input.txt', 'smart_home_output.txt')
             print("Berekeningen opgeslagen in smart_home_output.txt")
@@ -79,15 +99,12 @@ def smart_home_controller():
         elif keuze == '4':
             break
         else:
-            print("Fout: ongeldige keuze.")
-
-smart_home_controller()
+            print("Fout: Ongeldige keuze.")
 
 
-"""
-Bronnen:
-http://w3schools.com/python/ref_string_isdigit.asp
-https://www.w3schools.com/python/python_file_open.asp
-https://www.w3schools.com/python/python_file_write.asp
-https://www.youtube.com/watch?v=Uh2ebFW8OYM&t=709s&pp=ygUfcHl0aG9uIHJlYWQgYW5kIHdyaXRlIHRleHQgZmlsZQ%3D%3D
-"""
+
+
+
+
+
+
